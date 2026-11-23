@@ -1,564 +1,1026 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>냉장고 파먹기 AI - 스마트 재료 인식, 레시피 추천 & 나만의 보관함</title>
-  <!-- 기본 스타일시트 연결 -->
-  <link rel="stylesheet" href="style.css">
-  <!-- 구글 폰트: Noto Sans KR -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>냉장고를 부탁해 AI - 재료 인식 · 맞춤 레시피 · 나만의 레시피 북</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./styles.css" />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5699759200263189"
+     crossorigin="anonymous"></script>
 </head>
-<body>
-  <div class="app-container">
-    <!-- 헤더 영역 -->
-    <header class="app-header">
-      <div class="header-content">
-        <span class="logo-icon">🥗</span>
-        <div class="logo-text">
-          <h1>냉장고 파먹기 AI</h1>
-          <p>사진 한 장으로 재료를 찾고 맛있는 요리를 만드세요</p>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-20 md:pb-6">
+
+  <!-- 상단 헤더 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl font-bold shadow-xs shrink-0">
+          🧊
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-xl text-slate-900 tracking-tight">냉장고를 부탁해 AI</h1>
+            <span id="currentStepHeaderBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Step 1</span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">Model: <code class="font-mono text-emerald-700">google/gemma-4-26b-a4b-it:free</code></p>
         </div>
       </div>
-      <!-- 단계 표시 인디케이터 (1, 2, 3단계 원클릭 탭 전환) -->
-      <nav class="step-indicator" aria-label="진행 단계">
-        <div class="step-item active" id="stepIndicator1" data-step="1">
-          <span class="step-number">1</span>
-          <span class="step-label">재료 인식</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item" id="stepIndicator2" data-step="2">
-          <span class="step-number">2</span>
-          <span class="step-label">레시피 생성</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item" id="stepIndicator3" data-step="3">
-          <span class="step-number">3</span>
-          <span class="step-label">나만의 보관함</span>
-        </div>
-      </nav>
-    </header>
 
-    <!-- ====================================================================== -->
-    <!-- 1단계: 재료 인식 화면 (STEP 1)                                          -->
-    <!-- ====================================================================== -->
-    <main class="main-content" id="viewStep1">
-      <div class="grid-layout">
-        <!-- 좌측: 이미지 업로드 및 미리보기 패널 -->
-        <section class="card upload-section" aria-labelledby="upload-heading">
-          <h2 id="upload-heading" class="section-title">
-            <span class="title-badge">STEP 1</span>
-            냉장고 사진 올리기
-          </h2>
-          <p class="section-desc">냉장고 문을 열고 내부 재료가 잘 보이도록 촬영하거나 사진을 선택해주세요.</p>
-
-          <!-- 드롭존 & 파일 업로드 UI -->
-          <div class="dropzone" id="dropzone">
-            <div class="dropzone-empty" id="dropzoneEmpty">
-              <div class="upload-icon-wrapper">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-              </div>
-              <p class="dropzone-text">사진을 이곳으로 끌어다 놓거나</p>
-              <div class="upload-buttons">
-                <label for="fileInput" class="btn btn-secondary">
-                  📁 사진 선택
-                </label>
-                <label for="cameraInput" class="btn btn-primary">
-                  📷 카메라로 촬영
-                </label>
-              </div>
-              <p class="upload-hint">JPG, PNG, WebP 지원 (최대 10MB, 자동 최적화 압축)</p>
-            </div>
-
-            <!-- 숨김 파일 인풋 요소들 -->
-            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" class="visually-hidden">
-            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="visually-hidden">
-
-            <!-- 업로드 후 미리보기 및 스캔 애니메이션 영역 (초기 숨김) -->
-            <div class="preview-wrapper hidden" id="previewWrapper">
-              <img id="previewImage" alt="업로드된 냉장고 사진 미리보기" class="preview-image">
-              
-              <!-- AI 스캔 중 오버레이 & 레이더 라인 -->
-              <div class="scan-overlay hidden" id="scanOverlay">
-                <div class="scan-laser"></div>
-                <div class="scan-status-box">
-                  <div class="spinner"></div>
-                  <p class="scan-status-text">AI가 식재료를 식별하고 있습니다...</p>
-                  <span class="scan-model-info" id="scanModelInfo">Model: google/gemma-4-26b-a4b-it:free</span>
-                </div>
-              </div>
-
-              <!-- 이미지 제어 버튼 모음 -->
-              <div class="preview-actions">
-                <button type="button" class="btn-icon" id="btnReupload" title="다른 사진으로 변경">
-                  🔄 다시 올리기
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- AI 분석 트리거 버튼 -->
-          <div class="action-bar">
-            <button type="button" class="btn btn-action" id="btnAnalyze" disabled>
-              ✨ AI 재료 인식 시작하기
-            </button>
-          </div>
-        </section>
-
-        <!-- 우측: 인식 결과 및 재료 편집 패널 -->
-        <section class="card result-section" aria-labelledby="result-heading">
-          <div class="result-header">
-            <div>
-              <h2 id="result-heading" class="section-title">
-                인식된 재료 목록
-                <span class="badge-count" id="ingredientCount">0</span>
-              </h2>
-              <p class="section-desc">잘못 인식된 재료는 삭제하고, 빠진 재료는 직접 추가해보세요.</p>
-            </div>
-          </div>
-
-          <!-- 재료 직접 추가 입력 폼 -->
-          <form class="add-ingredient-form" id="addIngredientForm">
-            <div class="input-group">
-              <input type="text" id="inputName" class="input-text" placeholder="재료명 (예: 감자)" required>
-              <input type="text" id="inputQuantity" class="input-text qty-input" placeholder="수량 (예: 2개)">
-              <button type="submit" class="btn btn-secondary btn-sm">추가</button>
-            </div>
-          </form>
-
-          <!-- 재료 태그 리스트 컨테이너 -->
-          <div class="tags-container" id="tagsContainer">
-            <div class="empty-state" id="emptyState">
-              <span class="empty-icon">🥕</span>
-              <p>아직 인식된 재료가 없습니다.<br>냉장고 사진을 업로드하고 재료를 확인해보세요!</p>
-            </div>
-          </div>
-
-          <!-- AI 신뢰도 및 상태 안내 노트 -->
-          <div class="confidence-note hidden" id="confidenceNote">
-            <span class="note-icon">💡</span>
-            <p id="confidenceText"></p>
-          </div>
-
-          <!-- 2단계 진행 버튼 -->
-          <div class="next-step-bar">
-            <button type="button" class="btn btn-accent btn-large" id="btnGoToStep2" disabled>
-              🍳 이 재료로 레시피 추천받기 (2단계)
-            </button>
-          </div>
-        </section>
-      </div>
-    </main>
-
-    <!-- ====================================================================== -->
-    <!-- 2단계: AI 맞춤형 레시피 생성 화면 (STEP 2, 초기 숨김)                     -->
-    <!-- ====================================================================== -->
-    <main class="main-content hidden" id="viewStep2">
-      <!-- 상단 요약 바 & 조리 옵션 필터 카드 -->
-      <section class="card filter-card">
-        <div class="step2-header">
-          <div>
-            <h2 class="section-title">
-              <span class="title-badge">STEP 2</span>
-              AI 맞춤형 레시피 생성
-            </h2>
-            <p class="section-desc">인식된 재료와 개인 프로필이 결합된 맞춤형 요리를 추천합니다.</p>
-          </div>
-          <!-- 1단계로 돌아가기 버튼 -->
-          <button type="button" class="btn btn-secondary btn-sm" id="btnBackToStep1">
-            ← 재료 다시 수정
-          </button>
-        </div>
-
-        <!-- 현재 확정된 재료 요약 배지 목록 -->
-        <div class="selected-ingredients-summary">
-          <span class="summary-label">활용 재료:</span>
-          <div class="summary-chips" id="selectedIngredientsChips">
-            <!-- JS로 동적 렌더링 -->
-          </div>
-        </div>
-
-        <!-- 3단계 프로필 연동 안내 알림 띠 -->
-        <div class="profile-banner-alert" id="profileBannerAlert">
-          <span class="banner-icon">👤</span>
-          <span id="profileBannerText">사용자 프로필이 적용되어 맞춤 레시피가 추천됩니다.</span>
-          <button type="button" class="btn-link-sm" id="btnGoToProfileSettings">프로필 수정</button>
-        </div>
-
-        <!-- 조리 옵션 설정 폼 -->
-        <form class="recipe-options-form" id="recipeOptionsForm">
-          <div class="options-grid">
-            <!-- 기본 양념 보유 여부 -->
-            <div class="option-item option-toggle">
-              <label class="toggle-switch">
-                <input type="checkbox" id="optBaseSeasoning" checked>
-                <span class="slider"></span>
-              </label>
-              <span class="option-label">기본 양념 보유 (간장, 소금, 기름 등)</span>
-            </div>
-
-            <!-- 조리 시간 -->
-            <div class="option-item">
-              <label for="optCookingTime" class="option-label">소요 시간</label>
-              <select id="optCookingTime" class="select-box">
-                <option value="15분 이내">⚡ 15분 이내 (초간단)</option>
-                <option value="30분 이내" selected>⏱ 30분 이내 (적당함)</option>
-                <option value="1시간 이내">🥘 1시간 이내 (정성 가득)</option>
-                <option value="상관없음">상관없음</option>
-              </select>
-            </div>
-
-            <!-- 난이도 -->
-            <div class="option-item">
-              <label for="optDifficulty" class="option-label">난이도</label>
-              <select id="optDifficulty" class="select-box">
-                <option value="쉬움" selected>🌱 쉬움 (초보자 환영)</option>
-                <option value="보통">🍳 보통</option>
-                <option value="요리사 수준">👨‍🍳 요리사 수준</option>
-                <option value="상관없음">상관없음</option>
-              </select>
-            </div>
-
-            <!-- 요리 유형 -->
-            <div class="option-item">
-              <label for="optDishType" class="option-label">요리 종류</label>
-              <select id="optDishType" class="select-box">
-                <option value="전체" selected>모두 추천</option>
-                <option value="볶음/구이">볶음 / 구이</option>
-                <option value="국/찌개">국 / 찌개</option>
-                <option value="밥/면">밥 / 면 요리</option>
-                <option value="샐러드/간편식">샐러드 / 간편식</option>
-                <option value="간식/안주">간식 / 안주</option>
-              </select>
-            </div>
-
-            <!-- 식사 인원 -->
-            <div class="option-item">
-              <label for="optServings" class="option-label">식사 인원</label>
-              <select id="optServings" class="select-box">
-                <option value="1인분">1인분</option>
-                <option value="1~2인분" selected>1~2인분</option>
-                <option value="3~4인분">3~4인분 이상</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- 레시피 생성 트리거 버튼 -->
-          <div class="generate-btn-wrapper">
-            <button type="submit" class="btn btn-action" id="btnGenerateRecipe">
-              ✨ AI 추천 레시피 생성하기
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <!-- 레시피 생성 로딩 상태 인디케이터 (초기 숨김) -->
-      <section class="card recipe-loading-card hidden" id="recipeLoadingCard">
-        <div class="chef-loading-box">
-          <div class="chef-icon-anim">👨‍🍳</div>
-          <h3>AI 셰프가 최고의 레시피를 조리하고 있습니다...</h3>
-          <p class="loading-subtext">프로필 설정과 재료의 궁합을 고려하여 레시피를 작성 중입니다.</p>
-          <div class="loading-bar"><div class="loading-progress"></div></div>
-          <span class="loading-model-tag" id="recipeModelInfo">Model: google/gemma-4-26b-a4b-it:free</span>
-        </div>
-      </section>
-
-      <!-- 추천 레시피 카드 목록 그리드 -->
-      <section class="recipes-result-section hidden" id="recipesResultSection">
-        <div class="recipes-header">
-          <h3 class="recipes-list-title">
-            🍽 추천 맞춤 요리 <span class="badge-count" id="recipesCount">0</span>
-          </h3>
-          <button type="button" class="btn btn-secondary btn-sm" id="btnRegenerate">
-            🔄 다른 요리 더 추천받기
-          </button>
-        </div>
-
-        <div class="recipe-cards-grid" id="recipeCardsGrid">
-          <!-- JS 동적 생성 -->
-        </div>
-      </section>
-    </main>
-
-    <!-- ====================================================================== -->
-    <!-- 3단계: 사용자 프로필 & 나만의 레시피 북 화면 (STEP 3, 초기 숨김)           -->
-    <!-- ====================================================================== -->
-    <main class="main-content hidden" id="viewStep3">
-      <!-- 3단계 내부 서브 탭 네비게이션 -->
-      <div class="sub-tab-nav">
-        <button type="button" class="sub-tab-btn active" id="tabBtnRecipeBook" data-tab="book">
-          📖 나만의 레시피 북 (<span id="savedRecipeCount">0</span>)
+      <!-- 우측: 활성 프로필 버튼 & 저장된 레시피 카운트 & API 키 설정 -->
+      <div class="flex items-center gap-2">
+        <!-- 활성 프로필 퀵 버튼 (클릭 시 Step 3 프로필로 이동) -->
+        <button
+          id="headerProfileBtn"
+          type="button"
+          title="내 프로필 및 식단 설정"
+          class="min-h-[40px] px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-1.5 transition"
+        >
+          <span id="headerProfileAvatar" class="text-base">🧑‍🍳</span>
+          <span id="headerProfileName" class="max-w-[96px] truncate">자취생 김셰프</span>
         </button>
-        <button type="button" class="sub-tab-btn" id="tabBtnProfile" data-tab="profile">
-          👤 식습관 & 알레르기 프로필
+
+        <!-- 레시피 북 퀵 배지 -->
+        <button
+          id="savedRecipesHeaderBadge"
+          type="button"
+          title="나만의 레시피 북 열기"
+          class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition"
+        >
+          <span>♥</span>
+          <span id="savedRecipesCountText">레시피 북 0</span>
         </button>
-      </div>
 
-      <!-- 3-A. 나만의 레시피 북 탭 패널 -->
-      <section class="sub-tab-panel" id="panelRecipeBook">
-        <!-- 검색 및 유틸리티 툴바 -->
-        <div class="card book-toolbar-card">
-          <div class="toolbar-flex">
-            <div class="search-input-wrapper">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="inputRecipeSearch" class="search-input" placeholder="저장된 요리명 또는 재료 검색...">
-            </div>
-            <div class="toolbar-actions">
-              <select id="selectBookSort" class="select-box select-sm">
-                <option value="latest">최신 저장순</option>
-                <option value="rating">별점 높은순</option>
-                <option value="time">조리시간 짧은순</option>
-              </select>
-              <button type="button" class="btn btn-secondary btn-sm" id="btnExportJson" title="저장된 레시피를 JSON 파일로 백업">
-                💾 백업 내보내기
-              </button>
-            </div>
-          </div>
+        <span id="apiStatusBadge" class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+          <span class="w-2 h-2 rounded-full bg-slate-400" id="apiStatusDot"></span>
+          <span id="apiStatusText">API 확인 중...</span>
+        </span>
 
-          <!-- 태그 필터 칩 목록 -->
-          <div class="book-tags-filter" id="bookTagsFilter">
-            <button type="button" class="tag-filter-btn active" data-filter="all">전체</button>
-            <button type="button" class="tag-filter-btn" data-filter="favorites">⭐ 즐겨찾기 (4점 이상)</button>
-            <button type="button" class="tag-filter-btn" data-filter="quick">⚡ 15분 초간단</button>
-          </div>
-        </div>
-
-        <!-- 저장된 레시피 카드 목록 -->
-        <div class="recipe-cards-grid" id="savedRecipesGrid">
-          <!-- JS 동적 렌더링 -->
-        </div>
-
-        <!-- 저장된 레시피가 없을 때의 안내 -->
-        <div class="card empty-book-state hidden" id="emptyBookState">
-          <span class="empty-icon">📚</span>
-          <h3>아직 저장된 레시피가 없습니다!</h3>
-          <p>2단계에서 AI가 추천해준 레시피의 <strong>[⭐ 나만의 레시피 북에 저장]</strong> 버튼을 누르면 이곳에 영구 보관됩니다.</p>
-          <button type="button" class="btn btn-primary" id="btnGoStep1FromBook">
-            냉장고 사진 찍고 레시피 만들기 →
-          </button>
-        </div>
-      </section>
-
-      <!-- 3-B. 사용자 프로필 설정 탭 패널 (초기 숨김) -->
-      <section class="sub-tab-panel hidden" id="panelProfile">
-        <form class="card profile-form" id="profileForm">
-          <div class="profile-header">
-            <h2 class="section-title">
-              <span class="title-badge">PROFILE</span>
-              맞춤 식습관 & 건강 프로필
-            </h2>
-            <p class="section-desc">여기에 등록된 알레르기 및 기피 재료는 2단계 레시피 생성 시 AI가 절대 포함하지 않도록 안전하게 제외합니다.</p>
-          </div>
-
-          <!-- 1. 기본 프로필: 닉네임 & 아바타 -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="profileNickname" class="form-label">닉네임</label>
-              <input type="text" id="profileNickname" class="input-text" placeholder="예: 맛있는 요리왕" maxlength="15">
-            </div>
-            <div class="form-group">
-              <label class="form-label">아바타</label>
-              <div class="avatar-selector" id="avatarSelector">
-                <span class="avatar-option active" data-avatar="🧑‍🍳">🧑‍🍳</span>
-                <span class="avatar-option" data-avatar="🥗">🥗</span>
-                <span class="avatar-option" data-avatar="🦊">🦊</span>
-                <span class="avatar-option" data-avatar="🐻">🐻</span>
-                <span class="avatar-option" data-avatar="🥑">🥑</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. 식이 유형 선택 -->
-          <div class="form-group">
-            <label for="profileDietaryType" class="form-label">식단 유형</label>
-            <select id="profileDietaryType" class="select-box">
-              <option value="일반식">일반식 (제한 없음)</option>
-              <option value="비건 (완전 채식)">비건 (완전 채식)</option>
-              <option value="락토-오보 (계란/유제품 허용 채식)">락토-오보 (계란/유제품 채식)</option>
-              <option value="저탄고지 (키토제닉)">저탄고지 (키토제닉)</option>
-              <option value="저염식 / 다이어트">저염식 / 다이어트</option>
-            </select>
-          </div>
-
-          <!-- 3. 알레르기 & 기피 재료 선택 (부정적 제약 조건) -->
-          <div class="form-group">
-            <label class="form-label">
-              ⚠️ 알레르기 및 절대 기피 재료
-              <span class="label-hint">(선택 시 레시피에서 100% 제외됩니다)</span>
-            </label>
-            <div class="preset-tag-chips" id="allergyPresetChips">
-              <span class="chip-toggle" data-ingredient="갑각류(새우/게)">🦐 갑각류(새우/게)</span>
-              <span class="chip-toggle" data-ingredient="땅콩/견과류">🥜 땅콩/견과류</span>
-              <span class="chip-toggle" data-ingredient="유제품(우유/치즈)">🥛 유제품(우유/치즈)</span>
-              <span class="chip-toggle" data-ingredient="밀가루/글루텐">🌾 밀가루/글루텐</span>
-              <span class="chip-toggle" data-ingredient="대두(콩)">🫘 대두(콩)</span>
-              <span class="chip-toggle" data-ingredient="오이">🥒 오이</span>
-              <span class="chip-toggle" data-ingredient="고수">🌿 고수</span>
-            </div>
-            <!-- 직접 입력 추가 -->
-            <div class="input-group mt-2">
-              <input type="text" id="inputCustomAllergy" class="input-text" placeholder="직접 기피 재료 추가 (예: 돼지고기)">
-              <button type="button" class="btn btn-secondary btn-sm" id="btnAddCustomAllergy">추가</button>
-            </div>
-            <!-- 활성화된 기피 재료 태그 리스트 -->
-            <div class="active-allergy-tags" id="activeAllergyTags"></div>
-          </div>
-
-          <!-- 4. 선호 맛 강도 -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label for="profileSpiceLevel" class="form-label">선호 매운맛</label>
-              <select id="profileSpiceLevel" class="select-box">
-                <option value="순한맛 (안 매움)">순한맛 (안 매움)</option>
-                <option value="보통 (신라면 정도)" selected>보통 (신라면 정도)</option>
-                <option value="매운맛 (열라면/불닭)">매운맛 (화끈함)</option>
-                <option value="극강의 매운맛">극강의 매운맛</option>
-              </select>
-            </div>
-            <div class="form-group flex-1">
-              <label for="profileSaltLevel" class="form-label">선호 간 조절</label>
-              <select id="profileSaltLevel" class="select-box">
-                <option value="싱겁게 (저염식)">싱겁게 (저염식)</option>
-                <option value="보통" selected>보통 (적당한 간)</option>
-                <option value="짭짤하게">짭짤하게</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- 프로필 저장 버튼 -->
-          <div class="profile-actions">
-            <button type="submit" class="btn btn-primary" id="btnSaveProfile">
-              💾 프로필 설정 저장하기
-            </button>
-            <button type="button" class="btn btn-secondary" id="btnResetAllData" title="로컬 저장소의 모든 데이터를 초기화">
-              🗑 데이터 초기화
-            </button>
-          </div>
-        </form>
-      </section>
-    </main>
-
-    <!-- ====================================================================== -->
-    <!-- 레시피 상세 모달 & 인터랙티브 조리 뷰 (Cooking Mode & Notes)              -->
-    <!-- ====================================================================== -->
-    <div class="modal-backdrop hidden" id="recipeDetailModal">
-      <div class="modal-dialog">
-        <header class="modal-header">
-          <div class="modal-title-group">
-            <span class="modal-badge" id="modalDifficulty">쉬움</span>
-            <h3 id="modalTitle">초간단 파기름 두부 계란덮밥</h3>
-          </div>
-          <button type="button" class="btn-close-modal" id="btnCloseModal" aria-label="닫기">×</button>
-        </header>
-
-        <div class="modal-body">
-          <!-- 레시피 메타 정보 (시간, 인원, 칼로리) -->
-          <div class="recipe-meta-banner">
-            <div class="meta-item">
-              <span class="meta-icon">⏱</span>
-              <span class="meta-label">소요 시간</span>
-              <strong id="modalTime">20분</strong>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon">👥</span>
-              <span class="meta-label">식사 인원</span>
-              <strong id="modalServings">1~2인분</strong>
-            </div>
-            <div class="meta-item">
-              <span class="meta-icon">🔥</span>
-              <span class="meta-label">예상 칼로리</span>
-              <strong id="modalCalories">약 420 kcal</strong>
-            </div>
-          </div>
-
-          <p class="modal-summary" id="modalSummary">요리 요약 설명이 들어갑니다.</p>
-
-          <!-- 1. 필요 재료 체크 섹션 -->
-          <div class="modal-section">
-            <h4 class="sub-title">🛒 필요 재료</h4>
-            <div class="modal-ingredients-list" id="modalIngredientsList">
-              <!-- JS 동적 렌더링 -->
-            </div>
-          </div>
-
-          <!-- 2. 단계별 조리 과정 & 인터랙티브 타이머 섹션 -->
-          <div class="modal-section">
-            <div class="sub-title-row">
-              <h4 class="sub-title">👨‍🍳 단계별 조리 과정</h4>
-              <span class="sub-hint">완료한 단계를 클릭해 체크해보세요!</span>
-            </div>
-            <div class="cooking-steps-list" id="modalStepsList">
-              <!-- JS 동적 렌더링 -->
-            </div>
-          </div>
-
-          <!-- 3. 실시간 인터랙티브 조리 타이머 플로팅 바 -->
-          <div class="timer-widget hidden" id="timerWidget">
-            <div class="timer-display-group">
-              <span class="timer-step-badge" id="timerStepBadge">2단계 조리 중</span>
-              <div class="timer-digital" id="timerDigital">03:00</div>
-            </div>
-            <div class="timer-controls">
-              <button type="button" class="btn btn-sm btn-primary" id="btnTimerToggle">일시정지</button>
-              <button type="button" class="btn btn-sm btn-secondary" id="btnTimerReset">초기화</button>
-              <button type="button" class="btn-timer-close" id="btnTimerClose" title="타이머 닫기">×</button>
-            </div>
-          </div>
-
-          <!-- 4. 셰프 꿀팁 -->
-          <div class="chef-tips-box" id="modalChefTipsBox">
-            <span class="tip-icon">💡</span>
-            <div>
-              <strong>셰프의 팁:</strong>
-              <p id="modalChefTips">꿀팁 내용</p>
-            </div>
-          </div>
-
-          <!-- 5. 3단계 개인화 피드백: 별점 및 나만의 조리 메모 (Cooking Notes) -->
-          <div class="modal-section modal-notes-section">
-            <h4 class="sub-title">📝 나만의 요리 메모 & 평가</h4>
-            <!-- 별점 평가 위젯 -->
-            <div class="star-rating-box">
-              <span class="star-label">내 만족도 별점:</span>
-              <div class="stars-wrapper" id="modalStarRating">
-                <span class="star-btn" data-value="1">★</span>
-                <span class="star-btn" data-value="2">★</span>
-                <span class="star-btn" data-value="3">★</span>
-                <span class="star-btn" data-value="4">★</span>
-                <span class="star-btn" data-value="5">★</span>
-              </div>
-              <span class="star-score-text" id="modalStarText">미평가</span>
-            </div>
-            <!-- 조리 메모 입력란 -->
-            <textarea id="modalUserNotes" class="notes-textarea" placeholder="요리 후 나만의 꿀팁이나 변경한 양념 비율을 남겨보세요! (예: 간장을 반 큰술 줄이니 더 맛있었음)"></textarea>
-          </div>
-        </div>
-
-        <footer class="modal-footer modal-footer-actions">
-          <!-- 3단계 연계: 저장 및 공유 버튼 툴바 -->
-          <button type="button" class="btn btn-accent btn-large flex-1" id="btnSaveRecipe">
-            ⭐ 나만의 레시피 북에 저장
-          </button>
-          <button type="button" class="btn btn-secondary btn-large" id="btnShareRecipe" title="레시피 공유하기">
-            🔗 공유하기
-          </button>
-        </footer>
+        <button
+          id="openApiModalBtn"
+          type="button"
+          class="min-h-[40px] px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs sm:text-sm font-medium text-slate-700 flex items-center gap-1.5 transition"
+        >
+          <span>🔑</span>
+          <span class="hidden sm:inline">API 설정</span>
+        </button>
       </div>
     </div>
+  </header>
 
-    <!-- 푸터 영역 -->
-    <footer class="app-footer">
-      <p>© 2026 냉장고 파먹기 AI • Powered by OpenRouter & Gemma 4</p>
-    </footer>
+  <!-- 데스크톱 & 태블릿 상단 단계 전환 탭 바 (Step 1 <-> Step 2 <-> Step 3) -->
+  <nav class="bg-white border-b border-slate-200 sticky top-16 z-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
+      <button
+        id="navStep1Btn"
+        type="button"
+        class="step-nav-btn active min-h-[48px] py-3 px-2 border-b-2 border-emerald-600 text-emerald-600 font-bold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition"
+      >
+        <span class="step-num w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+        <span>📷 냉장고 재료 인식</span>
+        <span id="navIngCountBadge" class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-semibold">0</span>
+      </button>
+
+      <span class="text-slate-300 font-bold">→</span>
+
+      <button
+        id="navStep2Btn"
+        type="button"
+        class="step-nav-btn min-h-[48px] py-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition"
+      >
+        <span class="step-num w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">2</span>
+        <span>🍳 맞춤 레시피 생성</span>
+      </button>
+
+      <span class="text-slate-300 font-bold">→</span>
+
+      <button
+        id="navStep3Btn"
+        type="button"
+        class="step-nav-btn min-h-[48px] py-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-semibold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap transition"
+      >
+        <span class="step-num w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">3</span>
+        <span>📖 프로필 & 나만의 레시피 북</span>
+        <span id="navSavedCountBadge" class="px-2 py-0.5 rounded-full text-[11px] bg-rose-100 text-rose-700 font-semibold">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- 알림 배너 (오류 / 안내 토스트) -->
+  <div id="alertContainer" class="max-w-6xl w-full mx-auto px-4 sm:px-6 mt-4 hidden">
+    <div id="alertBox" class="p-4 rounded-xl border flex items-center justify-between gap-3 shadow-xs">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span id="alertIcon" class="text-lg">⚠️</span>
+        <p id="alertMessage" class="text-sm font-medium"></p>
+        <button
+          id="alertRetryBtn"
+          type="button"
+          class="hidden px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition"
+        >
+          🔁 다시 시도
+        </button>
+      </div>
+      <button id="closeAlertBtn" class="text-slate-400 hover:text-slate-600 text-lg leading-none shrink-0">&times;</button>
+    </div>
   </div>
 
-  <!-- 클라이언트 로직 스크립트 연결 -->
-  <script src="script.js"></script>
+  <!-- ========================================================= -->
+  <!-- STEP 1 VIEW: 냉장고 이미지 업로드 및 식재료 인식 -->
+  <!-- ========================================================= -->
+  <main id="step1View" class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+
+    <!-- 좌측 패널: 이미지 업로드 및 프리뷰 (Desktop 5칸) -->
+    <section class="md:col-span-5 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">1. 냉장고 사진 업로드</h2>
+            <p class="text-xs text-slate-500 mt-0.5">사진을 올리면 AI가 식재료를 자동으로 스캔합니다.</p>
+          </div>
+          <button
+            id="loadSampleImageBtn"
+            type="button"
+            class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
+          >
+            샘플 이미지 불러오기
+          </button>
+        </div>
+
+        <!-- 드래그 앤 드롭 & 업로드 영역 -->
+        <div
+          id="dropZone"
+          class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center transition cursor-pointer bg-slate-50/70 hover:bg-emerald-50/30 flex flex-col items-center justify-center min-h-[240px] relative overflow-hidden"
+        >
+          <div id="uploadPlaceholder" class="flex flex-col items-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl shadow-inner">
+              📷
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-700">클릭하거나 이미지를 이곳에 드래그하세요</p>
+              <p class="text-xs text-slate-500 mt-1">JPG, PNG, WEBP 지원 (최대 10MB · 자동 리사이징 압축)</p>
+            </div>
+          </div>
+
+          <div id="previewContainer" class="hidden w-full flex-col items-center gap-3">
+            <div class="relative w-full max-h-[340px] overflow-hidden rounded-xl border border-slate-200 bg-black/5 flex items-center justify-center">
+              <img id="imagePreview" src="" alt="냉장고 사진 미리보기" class="max-h-[320px] w-auto object-contain rounded-lg" />
+              <button
+                id="removeImageBtn"
+                type="button"
+                title="이미지 제거"
+                class="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-slate-900/75 hover:bg-slate-900 text-white flex items-center justify-center text-sm shadow-md transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div id="imageMetaInfo" class="text-xs text-slate-500 flex items-center gap-2 flex-wrap justify-center"></div>
+          </div>
+
+          <input id="fileInput" type="file" accept="image/*" class="hidden" />
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button
+            id="selectFileBtn"
+            type="button"
+            class="min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-sm flex items-center justify-center gap-2 transition"
+          >
+            <span>📁</span>
+            <span>사진 선택</span>
+          </button>
+          <button
+            id="takePhotoBtn"
+            type="button"
+            class="min-h-[44px] px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-sm flex items-center justify-center gap-2 transition"
+          >
+            <span>📸</span>
+            <span>카메라 촬영</span>
+          </button>
+        </div>
+
+        <button
+          id="analyzeBtn"
+          type="button"
+          disabled
+          class="min-h-[48px] w-full py-3 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base shadow-xs flex items-center justify-center gap-2 transition"
+        >
+          <span>🔍</span>
+          <span id="analyzeBtnText">AI로 냉장고 재료 인식하기</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 우측 패널: 인식된 식재료 목록 및 편집 (Desktop 7칸) -->
+    <section class="md:col-span-7 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4 flex-1">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">2. 인식된 식재료 확인 및 편집</h2>
+              <span id="ingredientCountBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700">0개</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">AI가 인식한 재료를 클릭해 수정하거나, 누락된 재료를 직접 추가하세요.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="fillSampleIngredientsBtn"
+              type="button"
+              class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 transition"
+            >
+              + 샘플 재료 채우기
+            </button>
+            <button
+              id="clearAllIngredientsBtn"
+              type="button"
+              class="text-xs text-rose-600 hover:text-rose-700 font-medium px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition hidden"
+            >
+              전체 비우기
+            </button>
+          </div>
+        </div>
+
+        <form id="addIngredientForm" class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row gap-2">
+          <input
+            id="newIngName"
+            type="text"
+            placeholder="재료명 (예: 대파, 계란, 두부)"
+            required
+            class="min-h-[44px] flex-1 px-3.5 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          />
+          <input
+            id="newIngQty"
+            type="text"
+            placeholder="수량/양 (예: 2개, 반모)"
+            class="min-h-[44px] sm:w-36 px-3.5 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          />
+          <select
+            id="newIngCategory"
+            class="min-h-[44px] sm:w-28 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="채소">🥬 채소</option>
+            <option value="육류">🥩 육류</option>
+            <option value="유제품">🥛 유제품</option>
+            <option value="소스">🧂 소스</option>
+            <option value="기타">📦 기타</option>
+          </select>
+          <button
+            type="submit"
+            class="min-h-[44px] px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold whitespace-nowrap transition"
+          >
+            + 추가
+          </button>
+        </form>
+
+        <div id="categoryTabs" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <button type="button" data-category="전체" class="cat-tab active min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">전체</button>
+          <button type="button" data-category="채소" class="cat-tab min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🥬 채소</button>
+          <button type="button" data-category="육류" class="cat-tab min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🥩 육류</button>
+          <button type="button" data-category="유제품" class="cat-tab min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🥛 유제품</button>
+          <button type="button" data-category="소스" class="cat-tab min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🧂 소스</button>
+          <button type="button" data-category="기타" class="cat-tab min-h-[38px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">📦 기타</button>
+        </div>
+
+        <div id="loadingSkeleton" class="hidden flex-col items-center justify-center py-10 gap-4">
+          <div class="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+          <div class="text-center">
+            <p class="text-sm font-bold text-slate-800">냉장고 속 재료를 스캔하고 있습니다...</p>
+            <p class="text-xs text-slate-500 mt-1">Gemma 4 비전 모델이 이미지 속 식재료와 수량을 분석 중입니다.</p>
+          </div>
+          <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2">
+            <div class="h-14 rounded-xl bg-slate-100 animate-pulse"></div>
+            <div class="h-14 rounded-xl bg-slate-100 animate-pulse"></div>
+            <div class="h-14 rounded-xl bg-slate-100 animate-pulse"></div>
+            <div class="h-14 rounded-xl bg-slate-100 animate-pulse"></div>
+          </div>
+        </div>
+
+        <div id="emptyState" class="flex-1 flex flex-col items-center justify-center py-12 text-center text-slate-400">
+          <div class="text-4xl mb-2">🥗</div>
+          <p class="text-sm font-medium text-slate-600">아직 등록된 식재료가 없습니다.</p>
+          <p class="text-xs text-slate-400 mt-1">좌측에서 냉장고 사진을 업로드해 AI 스캔을 실행하거나,<br />상단 <strong class="text-emerald-600">[+ 샘플 재료 채우기]</strong> 또는 입력창을 이용해 보세요.</p>
+        </div>
+
+        <div id="ingredientList" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto pr-1 hidden"></div>
+
+        <div class="mt-auto pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <button
+            id="toggleJsonBtn"
+            type="button"
+            class="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-600 flex items-center justify-center gap-1.5 transition"
+          >
+            <span>{ }</span>
+            <span>추출된 JSON 데이터 보기</span>
+          </button>
+
+          <button
+            id="confirmStep1Btn"
+            type="button"
+            disabled
+            class="min-h-[48px] px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition"
+          >
+            <span>재료 확정 및 Step 2 레시피 추천받기</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div id="jsonPreviewBox" class="hidden bg-slate-900 text-emerald-300 rounded-xl p-4 text-xs font-mono overflow-x-auto max-h-56">
+          <pre id="jsonPreviewContent"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- STEP 2 VIEW: 인식된 재료 기반 맞춤형 레시피 생성 -->
+  <!-- ========================================================= -->
+  <main id="step2View" class="hidden flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex-col gap-6">
+
+    <!-- Step 3 연동: 활성 사용자 프로필 식단/알레르기 자동 반영 안내 배너 -->
+    <div class="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-start sm:items-center gap-3">
+        <span id="step2ProfileAvatar" class="text-2xl bg-white w-11 h-11 rounded-xl border border-emerald-200 flex items-center justify-center shadow-2xs shrink-0">🧑‍🍳</span>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="step2ProfileTitle" class="text-xs sm:text-sm font-bold text-emerald-950">자취생 김셰프님의 맞춤 프로필이 적용됩니다</span>
+            <span id="step2ProfileDietBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white">일반식</span>
+          </div>
+          <p id="step2ProfileExclusionText" class="text-xs text-emerald-800 mt-0.5">
+            제외 재료(알레르기/기피): 없음
+          </p>
+        </div>
+      </div>
+      <button
+        id="step2EditProfileBtn"
+        type="button"
+        class="min-h-[40px] self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-white hover:bg-emerald-100 border border-emerald-300 text-xs font-bold text-emerald-800 shrink-0 transition"
+      >
+        ⚙️ 프로필/알레르기 설정 (Step 3)
+      </button>
+    </div>
+
+    <!-- 1. 보유 재료 요약 & 필터 설정 카드 -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 flex flex-col gap-5">
+      <!-- 상단: Step 1에서 전달된 보유 재료 요약 바 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-sm font-bold text-slate-900">🧺 현재 보유 식재료</span>
+            <span id="step2IngCountBadge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700">0개</span>
+          </div>
+          <div id="step2IngredientChips" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <button
+          id="backToStep1Btn"
+          type="button"
+          class="min-h-[44px] self-start sm:self-center px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shrink-0 transition"
+        >
+          <span>←</span>
+          <span>재료 수정하기 (Step 1)</span>
+        </button>
+      </div>
+
+      <!-- 중단: 맞춤형 레시피 조건(필터) 설정 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div class="lg:col-span-6 flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <span>🍽️ 요리 카테고리</span>
+          </label>
+          <div id="filterCuisineGroup" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button type="button" data-value="전체" class="filter-pill active min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">전체</button>
+            <button type="button" data-value="한식" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🍚 한식</button>
+            <button type="button" data-value="양식" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🍝 양식</button>
+            <button type="button" data-value="중식" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🥟 중식</button>
+            <button type="button" data-value="일식" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🍱 일식</button>
+            <button type="button" data-value="분식/간식" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🍜 분식/간식</button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <span>⏱️ 희망 조리 시간</span>
+          </label>
+          <div id="filterTimeGroup" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button type="button" data-value="15분 이내" class="filter-pill min-h-[40px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">⚡ 15분 이내 (초간단)</button>
+            <button type="button" data-value="30분 이내" class="filter-pill active min-h-[40px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">⏱️ 30분 이내</button>
+            <button type="button" data-value="60분 이내" class="filter-pill min-h-[40px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🍲 60분 이내</button>
+            <button type="button" data-value="상관없음" class="filter-pill min-h-[40px] px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">상관없음</button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-700">📊 요리 난이도</label>
+          <div id="filterDifficultyGroup" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button type="button" data-value="초급" class="filter-pill active min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🌱 초급</button>
+            <button type="button" data-value="중급" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">👨‍🍳 중급</button>
+            <button type="button" data-value="고급" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">🔥 고급</button>
+            <button type="button" data-value="상관없음" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">전체</button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-700">👥 기준 인원수</label>
+          <div id="filterServingsGroup" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button type="button" data-value="1인분" class="filter-pill active min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">1인분</button>
+            <button type="button" data-value="2인분" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">2인분</button>
+            <button type="button" data-value="3~4인분" class="filter-pill min-h-[40px] px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition">3~4인분</button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col justify-center bg-slate-50 rounded-xl p-3.5 border border-slate-200/80">
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              id="basicSeasoningCheckbox"
+              type="checkbox"
+              checked
+              class="mt-0.5 w-4 h-4 accent-emerald-600 rounded cursor-pointer"
+            />
+            <div>
+              <span class="text-xs font-bold text-slate-800 block">🧂 기본 양념/조미료 보유 가정</span>
+              <span class="text-[11px] text-slate-500 leading-tight block mt-0.5">
+                소금, 설탕, 간장, 고추장, 된장, 식용유, 참기름, 다진마늘, 후추
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+        <button
+          id="regenerateRecipesBtn"
+          type="button"
+          class="hidden min-h-[48px] px-5 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-sm items-center justify-center gap-2 transition"
+        >
+          <span>🔄</span>
+          <span>다른 조합으로 다시 추천받기</span>
+        </button>
+
+        <button
+          id="generateRecipesBtn"
+          type="button"
+          class="min-h-[48px] px-7 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base shadow-xs flex items-center justify-center gap-2 transition"
+        >
+          <span>🍳</span>
+          <span id="generateRecipesBtnText">AI 맞춤 레시피 3선 생성하기</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. 레시피 생성 로딩 스켈레톤 -->
+    <section id="recipeLoadingSkeleton" class="hidden flex-col items-center justify-center py-12 bg-white rounded-2xl border border-slate-200 p-6 gap-5">
+      <div class="w-14 h-14 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+      <div class="text-center">
+        <p class="text-base font-bold text-slate-900">AI 셰프가 맞춤형 레시피 3가지를 연구하고 있습니다...</p>
+        <p class="text-xs text-slate-500 mt-1">프로필의 알레르기/기피 식재료를 제외하고 보유 재료 활용도를 극대화하는 중입니다.</p>
+      </div>
+      <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
+        <div class="h-64 rounded-2xl bg-slate-100 animate-pulse"></div>
+        <div class="h-64 rounded-2xl bg-slate-100 animate-pulse"></div>
+        <div class="h-64 rounded-2xl bg-slate-100 animate-pulse"></div>
+      </div>
+    </section>
+
+    <!-- 3. 레시피 초기 빈 상태 안내 -->
+    <section id="recipeEmptyState" class="bg-white rounded-2xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center gap-3">
+      <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-4xl">
+        👨‍🍳
+      </div>
+      <h3 class="text-base font-bold text-slate-800">원하는 요리 조건을 선택하고 레시피를 생성해 보세요!</h3>
+      <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+        보유한 냉장고 재료와 내 프로필(알레르기·기피 재료·식단 목표)을 바탕으로 만들 수 있는 최적의 요리 3가지를 추천해 드립니다.
+      </p>
+    </section>
+
+    <!-- 4. 추천 레시피 결과 카드 리스트 -->
+    <section id="recipeResultsSection" class="hidden flex-col gap-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-bold text-slate-900">✨ AI 추천 맞춤 레시피</h2>
+          <span id="recipeResultCountBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700">3선</span>
+        </div>
+        <p class="text-xs text-slate-500">카드를 클릭하면 단계별 조리 가이드와 셰프의 팁을 볼 수 있습니다.</p>
+      </div>
+
+      <div id="recipeCardsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+    </section>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- STEP 3 VIEW: 사용자 프로필 관리 및 나만의 레시피 북 -->
+  <!-- ========================================================= -->
+  <main id="step3View" class="hidden flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- 좌측 패널 (5칸): 사용자 프로필 설정 & 백업/복원 -->
+    <section class="lg:col-span-5 flex flex-col gap-5">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 flex flex-col gap-5">
+        <!-- 상단 다중 프로필 전환 & 추가 -->
+        <div class="flex items-center justify-between gap-2 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">👤 사용자 프로필 설정</h2>
+            <p class="text-xs text-slate-500 mt-0.5">식단 목표와 알레르기 정보는 레시피 추천에 자동 반영됩니다.</p>
+          </div>
+          <button
+            id="addNewProfileBtn"
+            type="button"
+            class="min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shrink-0 transition"
+          >
+            + 새 프로필
+          </button>
+        </div>
+
+        <!-- 프로필 선택 탭 리스트 (다중 프로필 전환) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-2">활성 프로필 선택</label>
+          <div id="profileSelectorList" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar"></div>
+        </div>
+
+        <!-- 프로필 상세 편집 폼 -->
+        <form id="profileForm" class="flex flex-col gap-4">
+          <!-- 아바타 이모지 선택 -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">아바타 아이콘 선택</label>
+            <div id="avatarPicker" class="flex items-center gap-2 flex-wrap">
+              <button type="button" data-avatar="🧑‍🍳" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🧑‍🍳</button>
+              <button type="button" data-avatar="👩‍🍳" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">👩‍🍳</button>
+              <button type="button" data-avatar="👨‍🍳" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">👨‍🍳</button>
+              <button type="button" data-avatar="🥗" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🥗</button>
+              <button type="button" data-avatar="🍳" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🍳</button>
+              <button type="button" data-avatar="🥑" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🥑</button>
+              <button type="button" data-avatar="🐱" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🐱</button>
+              <button type="button" data-avatar="🐻" class="avatar-btn w-10 h-10 rounded-xl border text-xl flex items-center justify-center transition">🐻</button>
+            </div>
+          </div>
+
+          <!-- 닉네임 -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">닉네임</label>
+            <input
+              id="profileNickname"
+              type="text"
+              required
+              placeholder="예: 자취생 김셰프"
+              class="min-h-[44px] w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <!-- 식단 목표 & 요리 숙련도 & 기본 인분 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">선호 식단 유형</label>
+              <select
+                id="profileDietaryGoal"
+                class="min-h-[44px] w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="일반식">🍚 일반식</option>
+                <option value="다이어트/저칼로리">🥗 다이어트/저칼로리</option>
+                <option value="고단백/식단관리">💪 고단백/식단관리</option>
+                <option value="비건/채식">🌱 비건/채식</option>
+                <option value="키토/저탄고지">🥑 키토/저탄고지</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">기본 요리 실력</label>
+              <select
+                id="profileCookingLevel"
+                class="min-h-[44px] w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="초급">🌱 초급</option>
+                <option value="중급">👨‍🍳 중급</option>
+                <option value="고급">🔥 고급</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">기본 인원수</label>
+              <select
+                id="profileDefaultServings"
+                class="min-h-[44px] w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="1인분">1인분</option>
+                <option value="2인분">2인분</option>
+                <option value="3~4인분">3~4인분</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 알레르기 유발 식재료 태그 관리 -->
+          <div class="bg-rose-50/50 border border-rose-200/80 rounded-xl p-3.5">
+            <label class="block text-xs font-bold text-rose-900 mb-1">🚨 알레르기 유발 식재료 (레시피에서 자동 제외)</label>
+            <div class="flex gap-2 mb-2">
+              <input
+                id="allergyInput"
+                type="text"
+                placeholder="예: 땅콩, 갑각류, 복숭아, 우유"
+                class="min-h-[40px] flex-1 px-3 py-1.5 rounded-lg border border-rose-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-rose-400"
+              />
+              <button
+                id="addAllergyBtn"
+                type="button"
+                class="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 transition"
+              >
+                + 추가
+              </button>
+            </div>
+            <div id="allergyTagList" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- 기피 식재료 태그 관리 -->
+          <div class="bg-amber-50/50 border border-amber-200/80 rounded-xl p-3.5">
+            <label class="block text-xs font-bold text-amber-900 mb-1">🙈 기피 식재료 (싫어하는 재료 자동 제외)</label>
+            <div class="flex gap-2 mb-2">
+              <input
+                id="dislikedInput"
+                type="text"
+                placeholder="예: 고수, 오이, 민트, 당근"
+                class="min-h-[40px] flex-1 px-3 py-1.5 rounded-lg border border-amber-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <button
+                id="addDislikedBtn"
+                type="button"
+                class="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0 transition"
+              >
+                + 추가
+              </button>
+            </div>
+            <div id="dislikedTagList" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- 저장 & 프로필 삭제 버튼 -->
+          <div class="flex items-center justify-between gap-2 pt-2">
+            <button
+              id="deleteProfileBtn"
+              type="button"
+              class="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2.5 py-2 rounded-lg hover:bg-rose-50 transition hidden"
+            >
+              프로필 삭제
+            </button>
+            <button
+              type="submit"
+              class="min-h-[46px] flex-1 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs transition"
+            >
+              💾 프로필 설정 저장하기
+            </button>
+          </div>
+        </form>
+
+        <!-- 데이터 백업 및 복원 (JSON Export / Import) -->
+        <div class="pt-4 border-t border-slate-100 flex flex-col gap-2">
+          <span class="text-xs font-bold text-slate-600">📦 데이터 백업 및 복원 (JSON)</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              id="exportDataBtn"
+              type="button"
+              class="min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
+            >
+              <span>📥</span>
+              <span>JSON 내보내기</span>
+            </button>
+            <button
+              id="importDataBtn"
+              type="button"
+              class="min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 transition"
+            >
+              <span>📤</span>
+              <span>JSON 가져오기</span>
+            </button>
+            <input id="importFileInput" type="file" accept=".json,application/json" class="hidden" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 우측 패널 (7칸): 나만의 레시피 북 (저장된 레시피 관리) -->
+    <section class="lg:col-span-7 flex flex-col gap-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-6 flex flex-col gap-4 flex-1">
+        <!-- 상단 타이틀 & 카운트 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">📖 나만의 레시피 북</h2>
+              <span id="recipeBookCountBadge" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-rose-100 text-rose-700">0개</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">저장한 레시피에 별점과 나만의 요리 메모를 남겨 관리하세요.</p>
+          </div>
+
+          <button
+            id="goToStep2FromBookBtn"
+            type="button"
+            class="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition"
+          >
+            + 새 레시피 추천받기
+          </button>
+        </div>
+
+        <!-- 검색 및 필터/정렬 컨트롤 바 -->
+        <div class="flex flex-col sm:flex-row gap-2">
+          <div class="relative flex-1">
+            <input
+              id="recipeBookSearchInput"
+              type="text"
+              placeholder="요리명, 식재료, 메모 키워드로 검색..."
+              class="min-h-[42px] w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              id="filterFavoriteOnlyBtn"
+              type="button"
+              class="min-h-[42px] px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-amber-50 text-xs font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap transition"
+            >
+              <span>★</span>
+              <span>즐겨찾기만</span>
+            </button>
+
+            <select
+              id="recipeBookSortSelect"
+              class="min-h-[42px] px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="latest">최신 저장순</option>
+              <option value="rating">별점 높은순</option>
+              <option value="time">조리 시간 짧은순</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 레시피 북 빈 상태 -->
+        <div id="recipeBookEmptyState" class="flex-1 flex flex-col items-center justify-center py-14 text-center text-slate-400">
+          <div class="text-4xl mb-2">📔</div>
+          <p class="text-sm font-bold text-slate-600">아직 저장된 레시피가 없습니다.</p>
+          <p class="text-xs text-slate-400 mt-1 max-w-sm leading-relaxed">
+            Step 2에서 맞춤형 레시피를 추천받은 뒤 <strong class="text-rose-500">[♥ 저장]</strong> 버튼을 누르면 이곳에 차곡차곡 보관됩니다.
+          </p>
+        </div>
+
+        <!-- 저장된 레시피 카드 리스트 (반응형 1~2열 그리드) -->
+        <div id="savedRecipesGrid" class="hidden grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 모바일 전용 하단 고정 탭 바 (Bottom Navigation, < 768px) -->
+  <!-- ========================================================= -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 grid grid-cols-4 h-16 shadow-lg">
+    <button
+      id="mobNavStep1"
+      type="button"
+      class="mob-nav-btn active flex flex-col items-center justify-center gap-0.5 text-emerald-600 font-bold text-[11px]"
+    >
+      <span class="text-lg">📷</span>
+      <span>재료 인식</span>
+    </button>
+    <button
+      id="mobNavStep2"
+      type="button"
+      class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px]"
+    >
+      <span class="text-lg">🍳</span>
+      <span>레시피 추천</span>
+    </button>
+    <button
+      id="mobNavBook"
+      type="button"
+      class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px] relative"
+    >
+      <span class="text-lg">📖</span>
+      <span>내 레시피 북</span>
+    </button>
+    <button
+      id="mobNavProfile"
+      type="button"
+      class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px]"
+    >
+      <span class="text-lg">👤</span>
+      <span>내 프로필</span>
+    </button>
+  </nav>
+
+  <!-- ========================================================= -->
+  <!-- 레시피 상세 보기 모달 / 바텀 시트 -->
+  <!-- ========================================================= -->
+  <div id="recipeDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-slide-up">
+      <!-- 모달 상단 헤더 -->
+      <div class="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/70">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <span id="detailCategoryBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">한식</span>
+            <span id="detailMatchBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800">재료 일치 90%</span>
+          </div>
+          <h3 id="detailTitle" class="text-lg sm:text-xl font-bold text-slate-900">요리명</h3>
+          <p id="detailDescription" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <button
+          id="closeRecipeDetailBtn"
+          type="button"
+          class="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-500 flex items-center justify-center text-xl leading-none shrink-0"
+        >
+          &times;
+        </button>
+      </div>
+
+      <!-- 모달 스크롤 본문 -->
+      <div class="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+        <div class="grid grid-cols-4 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 text-center">
+          <div>
+            <span class="text-[11px] text-slate-400 block">조리 시간</span>
+            <span id="detailCookingTime" class="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 block">15분</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block">난이도</span>
+            <span id="detailDifficulty" class="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 block">초급</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block">기준량</span>
+            <span id="detailServings" class="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 block">1인분</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block">예상 열량</span>
+            <span id="detailCalories" class="text-xs sm:text-sm font-bold text-emerald-700 mt-0.5 block">450kcal</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2.5">
+              <h4 class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                <span>🟢 보유 식재료 (바로 사용)</span>
+              </h4>
+              <span id="detailUsedCount" class="text-[11px] font-bold text-emerald-700">0개</span>
+            </div>
+            <div id="detailUsedIngredients" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2.5">
+              <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                <span>🟠 추가 필요 재료 (부족/선택)</span>
+              </h4>
+              <span id="detailMissingCount" class="text-[11px] font-bold text-amber-700">0개</span>
+            </div>
+            <div id="detailMissingIngredients" class="flex flex-wrap gap-1.5"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-bold text-slate-900">👩‍🍳 단계별 조리 순서 (완료한 단계를 체크해보세요)</h4>
+            <span id="detailStepProgressText" class="text-xs font-semibold text-emerald-600">0% 완료</span>
+          </div>
+          <div id="detailStepsList" class="flex flex-col gap-2.5"></div>
+        </div>
+
+        <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 flex items-start gap-3">
+          <span class="text-xl">💡</span>
+          <div>
+            <h4 class="text-xs font-bold text-sky-900">셰프의 꿀팁 & 재료 대체 가이드</h4>
+            <p id="detailTips" class="text-xs text-sky-800 mt-1 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 모달 하단 액션 푸터 (클립보드 공유 & 내 레시피 북 저장) -->
+      <div class="px-5 py-3.5 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <button
+            id="closeRecipeDetailFooterBtn"
+            type="button"
+            class="min-h-[44px] px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-600 transition"
+          >
+            닫기
+          </button>
+          <button
+            id="copyRecipeTextBtn"
+            type="button"
+            class="min-h-[44px] px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5 transition"
+          >
+            <span>📋</span>
+            <span>레시피 복사</span>
+          </button>
+        </div>
+
+        <button
+          id="detailSaveRecipeBtn"
+          type="button"
+          class="min-h-[44px] px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition"
+        >
+          <span id="detailSaveRecipeIcon">♥</span>
+          <span id="detailSaveRecipeText">내 프로필에 레시피 저장</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 재료 인라인 수정 모달 -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-slate-900">식재료 정보 수정</h3>
+        <button id="closeEditModalBtn" type="button" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      </div>
+      <form id="editIngredientForm" class="flex flex-col gap-3.5">
+        <input type="hidden" id="editIngId" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">재료명</label>
+          <input
+            id="editIngName"
+            type="text"
+            required
+            class="min-h-[44px] w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">수량 / 상태</label>
+          <input
+            id="editIngQty"
+            type="text"
+            required
+            class="min-h-[44px] w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">카테고리</label>
+          <select
+            id="editIngCategory"
+            class="min-h-[44px] w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="채소">🥬 채소</option>
+            <option value="육류">🥩 육류</option>
+            <option value="유제품">🥛 유제품</option>
+            <option value="소스">🧂 소스</option>
+            <option value="기타">📦 기타</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button
+            id="cancelEditBtn"
+            type="button"
+            class="min-h-[44px] px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
+          >
+            취소
+          </button>
+          <button
+            type="submit"
+            class="min-h-[44px] px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
+          >
+            저장하기
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- OpenRouter API 키 설정 모달 -->
+  <div id="apiModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-bold text-slate-900">🔑 OpenRouter API 키 설정</h3>
+        <button id="closeApiModalBtn" type="button" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+        서버의 <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">.env</code> 파일에 설정된 키가 있으면 자동으로 사용됩니다. 직접 다른 OpenRouter API 키를 사용하려면 아래에 입력하세요 (브라우저 <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">localStorage</code>에 저장됨).
+      </p>
+      <form id="apiKeyForm" class="flex flex-col gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">OpenRouter API Key (선택)</label>
+          <input
+            id="apiKeyInput"
+            type="password"
+            placeholder="sk-or-v1-..."
+            class="min-h-[44px] w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+        <div class="flex justify-between items-center mt-2">
+          <button
+            id="clearApiKeyBtn"
+            type="button"
+            class="text-xs text-rose-600 hover:underline font-medium"
+          >
+            저장된 키 삭제 (.env 기본값 사용)
+          </button>
+          <div class="flex gap-2">
+            <button
+              id="cancelApiModalBtn"
+              type="button"
+              class="min-h-[44px] px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
+            >
+              닫기
+            </button>
+            <button
+              type="submit"
+              class="min-h-[44px] px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
+            >
+              저장
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
